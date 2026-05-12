@@ -206,7 +206,7 @@ local function buildEntry(theme: Theme): (Frame, TextLabel, TextLabel, TextBox)
 		Size = UDim2.fromOffset(0, 22),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Font = theme.MonoFont,
-		Text = "player ❯",
+		Text = "player ›",
 		TextColor3 = theme.Accent,
 		TextSize = theme.TextSize,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -263,6 +263,18 @@ local function buildEntry(theme: Theme): (Frame, TextLabel, TextLabel, TextBox)
 	return entry, prompt, caret, box
 end
 
+-- Autocomplete layout (rewrite v2):
+--   * Fixed popup width — no width clamp drama
+--   * Single-line items at a fixed height — no AutomaticSize chain reactions
+--   * Items ScrollingFrame's height is set explicitly per Show() based on count
+--   * Description for the selected item is shown in the Info panel above the
+--     list (mirroring how evaera/Cmdr does it); the row itself stays a clean
+--     one-liner with a RichText accent highlight on the matched substring.
+local AC_ITEM_HEIGHT = 28
+local AC_ITEM_SPACING = 1
+local AC_MAX_VISIBLE_ITEMS = 7
+local AC_POPUP_WIDTH = 380
+
 local function buildAutocomplete(theme: Theme): (
 	Frame,
 	Frame,
@@ -277,22 +289,23 @@ local function buildAutocomplete(theme: Theme): (
 		Name = "Name",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 18),
-		Font = theme.Font,
+		Font = theme.MonoFont,
 		Text = "",
 		TextColor3 = theme.TextStrong,
 		TextSize = theme.TextSize,
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 		LayoutOrder = 1,
 	})
 
 	local typeLabel = make("TextLabel", {
 		Name = "Type",
 		BackgroundTransparency = 1,
-		Size = UDim2.new(1, 0, 0, 16),
+		Size = UDim2.new(1, 0, 0, 14),
 		Font = theme.Font,
 		Text = "",
 		TextColor3 = theme.AccentMuted,
-		TextSize = theme.TextSize - 2,
+		TextSize = theme.TextSize - 3,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		LayoutOrder = 2,
 	})
@@ -307,6 +320,7 @@ local function buildAutocomplete(theme: Theme): (
 		TextColor3 = theme.TextMuted,
 		TextSize = theme.TextSize - 2,
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextYAlignment = Enum.TextYAlignment.Top,
 		TextWrapped = true,
 		LayoutOrder = 3,
 	})
@@ -314,7 +328,7 @@ local function buildAutocomplete(theme: Theme): (
 	local info = make("Frame", {
 		Name = "Info",
 		BackgroundColor3 = theme.SurfaceAlt,
-		BackgroundTransparency = 0.2,
+		BackgroundTransparency = 0.15,
 		Size = UDim2.new(1, 0, 0, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BorderSizePixel = 0,
@@ -322,7 +336,7 @@ local function buildAutocomplete(theme: Theme): (
 		Visible = false,
 	}, {
 		rounded(8),
-		asymPadding(8, 10, 8, 10),
+		asymPadding(10, 12, 10, 12),
 		make("UIListLayout", {
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = UDim.new(0, 4),
@@ -332,10 +346,11 @@ local function buildAutocomplete(theme: Theme): (
 		desc,
 	})
 
+	-- Single-line item button. Fixed height so the items frame is predictable.
 	local itemTemplate = make("TextButton", {
 		Name = "ItemTemplate",
-		Size = UDim2.new(1, 0, 0, 32),
-		BackgroundColor3 = theme.SurfaceAlt,
+		Size = UDim2.new(1, 0, 0, AC_ITEM_HEIGHT),
+		BackgroundColor3 = theme.AccentMuted,
 		BackgroundTransparency = 1,
 		BorderSizePixel = 0,
 		AutoButtonColor = false,
@@ -343,13 +358,17 @@ local function buildAutocomplete(theme: Theme): (
 		Text = "",
 		RichText = true,
 		TextColor3 = theme.Text,
-		TextSize = theme.TextSize - 1,
+		TextSize = theme.TextSize,
 		TextXAlignment = Enum.TextXAlignment.Left,
+		TextTruncate = Enum.TextTruncate.AtEnd,
 	}, {
 		rounded(6),
-		asymPadding(0, 10, 0, 10),
+		asymPadding(0, 12, 0, 12),
 	})
 
+	-- The items ScrollingFrame's height is set explicitly in renderItems() to
+	-- AC_ITEM_HEIGHT * min(count, AC_MAX_VISIBLE_ITEMS) + spacing, so there is
+	-- never an AutomaticSize feedback loop with AutomaticCanvasSize.
 	local items = make("ScrollingFrame", {
 		Name = "Items",
 		BackgroundTransparency = 1,
@@ -358,21 +377,25 @@ local function buildAutocomplete(theme: Theme): (
 		CanvasSize = UDim2.new(),
 		ScrollBarThickness = 4,
 		ScrollBarImageColor3 = theme.AccentMuted,
+		ScrollingDirection = Enum.ScrollingDirection.Y,
+		ElasticBehavior = Enum.ElasticBehavior.Never,
 		BorderSizePixel = 0,
+		ClipsDescendants = true,
 		LayoutOrder = 2,
 	})
 
 	local itemsLayout = make("UIListLayout", {
 		SortOrder = Enum.SortOrder.LayoutOrder,
-		Padding = UDim.new(0, 2),
+		Padding = UDim.new(0, AC_ITEM_SPACING),
 	})
 	itemsLayout.Parent = items
 
+	-- Popup: fixed width, AutomaticSize.Y derived from the (fixed) child sizes.
 	local ac = make("Frame", {
 		Name = "Autocomplete",
 		BackgroundColor3 = theme.Surface,
 		BackgroundTransparency = theme.SurfaceTransparency,
-		Size = UDim2.fromOffset(280, 0),
+		Size = UDim2.fromOffset(AC_POPUP_WIDTH, 0),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BorderSizePixel = 0,
 		Visible = false,
@@ -380,10 +403,10 @@ local function buildAutocomplete(theme: Theme): (
 	}, {
 		rounded(theme.CornerRadius),
 		stroke(theme.Border, theme.BorderTransparency, 1),
-		asymPadding(8, 8, 8, 8),
+		asymPadding(10, 10, 10, 10),
 		make("UIListLayout", {
 			SortOrder = Enum.SortOrder.LayoutOrder,
-			Padding = UDim.new(0, 6),
+			Padding = UDim.new(0, 8),
 		}),
 		info,
 		items,
@@ -400,7 +423,7 @@ local function buildMobileToggle(theme: Theme): TextButton
 		Size = UDim2.fromOffset(56, 56),
 		BackgroundColor3 = theme.Surface,
 		BackgroundTransparency = 0.05,
-		Text = "⌘",
+		Text = "Cmd",
 		Font = theme.Font,
 		TextColor3 = theme.Accent,
 		TextSize = 26,
@@ -457,10 +480,10 @@ local function buildMobileBar(theme: Theme): (Frame, { [string]: TextButton })
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = UDim.new(0, 6),
 		}),
-		pill("Up", "↑", 1),
-		pill("Down", "↓", 2),
+		pill("Up", "Up", 1),
+		pill("Down", "Down", 2),
 		pill("Tab", "Tab", 3),
-		pill("Submit", "Run ⏎", 4),
+		pill("Submit", "Run", 4),
 		pill("Hide", "Hide", 5),
 	})
 
@@ -468,6 +491,11 @@ local function buildMobileBar(theme: Theme): (Frame, { [string]: TextButton })
 end
 
 local UIBuilder = {}
+
+UIBuilder.AC_ITEM_HEIGHT = AC_ITEM_HEIGHT
+UIBuilder.AC_ITEM_SPACING = AC_ITEM_SPACING
+UIBuilder.AC_MAX_VISIBLE_ITEMS = AC_MAX_VISIBLE_ITEMS
+UIBuilder.AC_POPUP_WIDTH = AC_POPUP_WIDTH
 
 function UIBuilder.Build(playerName: string): Refs
 	local theme = Theme.Current
@@ -522,7 +550,7 @@ function UIBuilder.Build(playerName: string): Refs
 		Position = UDim2.new(0, 12, 1, -6),
 		Size = UDim2.new(1, -24, 0, 14),
 		Font = theme.Font,
-		Text = "tab autocomplete · ↑ ↓ history · enter run · F2 close",
+		Text = "tab autocomplete · up/down history · enter run · F2 close",
 		TextColor3 = theme.TextMuted,
 		TextSize = theme.HeaderTextSize - 3,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -636,7 +664,7 @@ function UIBuilder.Build(playerName: string): Refs
 	}
 
 	-- Make prompt reflect player name early
-	prompt.Text = playerName .. " ❯"
+	prompt.Text = playerName .. " ›"
 
 	return refs
 end

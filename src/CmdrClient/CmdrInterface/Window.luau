@@ -55,9 +55,9 @@ Window.Valid = true
 function Window:GetLabel(): string
 	local placeName = self.Cmdr.PlaceName
 	if placeName and placeName ~= "" then
-		return ("%s@%s ❯"):format(Player.Name, placeName)
+		return ("%s@%s ›"):format(Player.Name, placeName)
 	end
-	return ("%s ❯"):format(Player.Name)
+	return ("%s ›"):format(Player.Name)
 end
 
 function Window:UpdateLabel(): ()
