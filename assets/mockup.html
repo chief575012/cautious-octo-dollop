@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>CmdrPlus mockup</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 48px;
+    background: #0b0c12;
+    background-image: radial-gradient(circle at 20% 0%, #1a1830, transparent 50%),
+                      radial-gradient(circle at 80% 90%, #20153a, transparent 55%),
+                      linear-gradient(180deg, #0b0c12, #06070c);
+    color: #e8eaf0;
+    font-family: 'Inter', system-ui, sans-serif;
+    min-height: 100vh;
+  }
+  h1 {
+    font-size: 26px; margin: 0 0 24px; letter-spacing: 0.5px;
+    background: linear-gradient(90deg, #c0b6ff, #7c5cff 60%, #f56cc1);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .grid { display: grid; grid-template-columns: 1fr; gap: 36px; max-width: 920px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .label { font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase;
+           color: #6c7484; margin-bottom: 10px; }
+
+  /* Console card */
+  .console {
+    position: relative;
+    border-radius: 14px;
+    box-shadow: 0 28px 90px -20px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  }
+  .console::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(120deg, rgba(255,255,255,0.04), transparent 60%);
+    pointer-events: none;
+  }
+  .console.dark      { background: rgba(15,17,24,0.92); color: #e8eaf0; }
+  .console.oled      { background: #000;                 color: #e8eaf0; }
+  .console.light     { background: rgba(244,246,250,0.96); color: #1c2028; }
+  .console.solarized { background: rgba(0,43,54,0.95);    color: #eee8d5; }
+  .console.synth     { background: rgba(26,12,44,0.94);   color: #f4e8ff; }
+
+  .header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.04);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .light .header { background: rgba(0,0,0,0.04); border-bottom-color: rgba(0,0,0,0.06); }
+  .place { font-size: 13px; font-weight: 600; flex: 1; }
+  .badge {
+    font-size: 11px; padding: 3px 8px; border-radius: 6px;
+    background: rgba(255,255,255,0.06);
+  }
+  .close {
+    width: 24px; height: 24px; display: grid; place-items: center;
+    border-radius: 6px; background: rgba(255,255,255,0.05);
+    font-size: 18px; line-height: 1; cursor: pointer;
+  }
+
+  .body { padding: 12px; min-height: 200px; }
+  .line { line-height: 1.5; font-size: 13.5px; }
+  .echo  { color: #7c5cff; }
+  .ok    { color: #6cdc90; }
+  .err   { color: #f46464; }
+  .mute  { color: #969ca8; }
+  .oled .echo  { color: #00c8ff; }
+  .light .echo { color: #583cdc; }
+  .light .mute { color: #606878; }
+  .solarized .echo { color: #268bd2; }
+  .solarized .mute { color: #93a1a1; }
+  .synth .echo { color: #ff69b4; }
+  .synth .mute { color: #b49ede; }
+
+  .prompt-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+  .prompt { font-weight: 700; }
+  .caret  { color: rgba(255,255,255,0.55); }
+  .input  { flex: 1; color: #ffffff; }
+  .light .input { color: #000; }
+
+  .footer-hint {
+    padding: 6px 12px 10px; font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .light .footer-hint { color: rgba(0,0,0,0.45); }
+
+  /* Autocomplete popup */
+  .popup {
+    margin: 18px 0 0;
+    border-radius: 14px;
+    box-shadow: 0 24px 60px -10px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.06);
+    padding: 8px;
+    background: rgba(15,17,24,0.92);
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  }
+  .popup .info {
+    padding: 8px 10px; background: rgba(255,255,255,0.04);
+    border-radius: 8px; margin-bottom: 6px;
+  }
+  .popup .info h4 { margin: 0 0 4px; font-size: 13px; }
+  .popup .info .ty { color: #b4a4ff; font-size: 12px; margin-bottom: 4px; }
+  .popup .info p { margin: 0; font-size: 12px; color: #969ca8; }
+  .item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 10px; border-radius: 8px; font-size: 13px;
+  }
+  .item.selected { background: rgba(124,92,255,0.18); }
+  .item .right { font-size: 11px; color: #969ca8; font-family: 'Inter', system-ui, sans-serif; }
+  .item .match { color: #ffffff; font-weight: 600; }
+  .item .rest  { color: #969ca8; }
+
+  /* Mobile chrome */
+  .mobile {
+    margin-top: 24px;
+    position: relative;
+    width: 360px;
+    height: 580px;
+    border-radius: 28px;
+    box-shadow: 0 30px 80px -10px rgba(0,0,0,0.7), 0 0 0 6px #0b0b10;
+    overflow: hidden;
+    background: linear-gradient(170deg, #0b0c12 0%, #14112a 100%);
+    margin-left: auto; margin-right: auto;
+  }
+  .mobile .toggle {
+    position: absolute; right: 14px; bottom: 130px;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: rgba(15,17,24,0.92);
+    display: grid; place-items: center;
+    box-shadow: 0 10px 30px -4px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1);
+    color: #b4a4ff; font-size: 22px;
+  }
+  .mobile .console-m {
+    position: absolute; top: 24px; left: 12px; right: 12px; height: 280px;
+    border-radius: 14px;
+    background: rgba(15,17,24,0.92);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    overflow: hidden;
+    font-family: 'JetBrains Mono', 'Roboto Mono', monospace;
+  }
+  .actionbar {
+    position: absolute; left: 12px; right: 12px; bottom: 64px;
+    height: 48px; border-radius: 14px;
+    background: rgba(15,17,24,0.92);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 4px 6px;
+  }
+  .pill {
+    padding: 0 14px; height: 38px; display: grid; place-items: center;
+    background: rgba(255,255,255,0.06); border-radius: 10px;
+    font-size: 14px; color: #fff; font-family: 'Inter', system-ui, sans-serif;
+  }
+  .pill.accent { color: #b4a4ff; }
+  .keyboard {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 56px;
+    background: linear-gradient(180deg, #050609 0%, #0d0d15 100%);
+    border-top: 1px solid rgba(255,255,255,0.04);
+    display: grid; place-items: center;
+    color: #6c7484; font-size: 12px;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  .acmini {
+    position: absolute; left: 12px; right: 12px; bottom: 124px;
+    border-radius: 14px;
+    background: rgba(15,17,24,0.95);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
+    padding: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+  }
+  .acmini .item { padding: 6px 8px; }
+  .acmini .item + .item { margin-top: 2px; }
+</style>
+</head>
+<body>
+<h1>CmdrPlus — Fresh UI &amp; mobile-friendly Cmdr</h1>
+
+<div class="grid">
+
+  <div>
+    <div class="label">Dark · default theme · desktop</div>
+    <div class="console dark">
+      <div class="header">
+        <span class="place">BoxFactory</span>
+        <span class="badge" style="color:#b4a4ff">Dark</span>
+        <div class="close">×</div>
+      </div>
+      <div class="body">
+        <div class="line"><span class="echo">silentphantom968@BoxFactory ❯</span> teleport me start</div>
+        <div class="line">Teleported silentphantom968 to spawn.</div>
+        <div class="line"><span class="echo">silentphantom968@BoxFactory ❯</span> announce "ship it"</div>
+        <div class="line ok">[Announcement] ship it</div>
+        <div class="line mute">help — list commands · clear — wipe output</div>
+        <div class="prompt-row">
+          <span class="echo prompt">silentphantom968@BoxFactory ❯</span>
+          <span class="caret">▌</span>
+          <span class="input">kill <span class="mute">all</span></span>
+        </div>
+      </div>
+      <div class="footer-hint">tab autocomplete · ↑ ↓ history · enter run · F2 close</div>
+    </div>
+    <div class="popup">
+      <div class="info">
+        <h4>victims<span class="ty">: Players</span></h4>
+        <p>The players who will be killed.</p>
+      </div>
+      <div class="item"><span><span class="match">all</span></span><span class="right">special</span></div>
+      <div class="item selected"><span><span class="match">all</span><span class="rest">-non-friends</span></span><span class="right">special</span></div>
+      <div class="item"><span><span class="match">all</span><span class="rest">-friends</span></span><span class="right">special</span></div>
+      <div class="item"><span><span class="match">all</span><span class="rest">-guests</span></span><span class="right">special</span></div>
+      <div class="item"><span><span class="match">all</span><span class="rest">ies</span></span><span class="right">team</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div>
+      <div class="label">OLED · cyan accent</div>
+      <div class="console oled">
+        <div class="header">
+          <span class="place">BoxFactory</span>
+          <span class="badge" style="color:#8cdcff">OLED</span>
+          <div class="close">×</div>
+        </div>
+        <div class="body">
+          <div class="line"><span class="echo">player ❯</span> teleport me lobby</div>
+          <div class="line">Teleported.</div>
+          <div class="prompt-row">
+            <span class="echo prompt">player ❯</span>
+            <span class="caret">▌</span>
+            <span class="input">give coins 100</span>
+          </div>
+        </div>
+        <div class="footer-hint">tab autocomplete · ↑ ↓ history · enter run · F2 close</div>
+      </div>
+    </div>
+    <div>
+      <div class="label">Light</div>
+      <div class="console light">
+        <div class="header">
+          <span class="place">BoxFactory</span>
+          <span class="badge" style="color:#583cdc">Light</span>
+          <div class="close">×</div>
+        </div>
+        <div class="body">
+          <div class="line"><span class="echo">player ❯</span> respawn me</div>
+          <div class="line">Respawned player.</div>
+          <div class="prompt-row">
+            <span class="echo prompt">player ❯</span>
+            <span class="caret">▌</span>
+            <span class="input">help</span>
+          </div>
+        </div>
+        <div class="footer-hint">tab autocomplete · ↑ ↓ history · enter run · F2 close</div>
+      </div>
+    </div>
+    <div>
+      <div class="label">Solarized</div>
+      <div class="console solarized">
+        <div class="header">
+          <span class="place">BoxFactory</span>
+          <span class="badge" style="color:#6c71c4">Solarized</span>
+          <div class="close">×</div>
+        </div>
+        <div class="body">
+          <div class="line"><span class="echo">player ❯</span> teleport me end</div>
+          <div class="line">Teleported.</div>
+          <div class="prompt-row">
+            <span class="echo prompt">player ❯</span>
+            <span class="caret">▌</span>
+            <span class="input">kick badactor</span>
+          </div>
+        </div>
+        <div class="footer-hint">tab autocomplete · ↑ ↓ history · enter run · F2 close</div>
+      </div>
+    </div>
+    <div>
+      <div class="label">Synthwave</div>
+      <div class="console synth">
+        <div class="header">
+          <span class="place">BoxFactory</span>
+          <span class="badge" style="color:#ff69b4">Synthwave</span>
+          <div class="close">×</div>
+        </div>
+        <div class="body">
+          <div class="line"><span class="echo">player ❯</span> announce "drop incoming"</div>
+          <div class="line">[Announcement] drop incoming</div>
+          <div class="prompt-row">
+            <span class="echo prompt">player ❯</span>
+            <span class="caret">▌</span>
+            <span class="input">give all gold 9999</span>
+          </div>
+        </div>
+        <div class="footer-hint">tab autocomplete · ↑ ↓ history · enter run · F2 close</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="label">Mobile — floating toggle + on-screen action bar above keyboard</div>
+    <div class="mobile">
+      <div class="console-m">
+        <div class="header"><span class="place">BoxFactory</span><span class="badge" style="color:#b4a4ff">Dark</span><div class="close">×</div></div>
+        <div class="body">
+          <div class="line"><span class="echo">player ❯</span> teleport me spawn</div>
+          <div class="line">Teleported.</div>
+          <div class="line"><span class="echo">player ❯</span> ki</div>
+        </div>
+      </div>
+      <div class="acmini">
+        <div class="item selected"><span><span class="match">ki</span><span class="rest">ck</span></span><span class="right">Admin</span></div>
+        <div class="item"><span><span class="match">ki</span><span class="rest">ll</span></span><span class="right">Admin</span></div>
+      </div>
+      <div class="actionbar">
+        <div class="pill accent">↑</div>
+        <div class="pill accent">↓</div>
+        <div class="pill">Tab</div>
+        <div class="pill" style="background:rgba(124,92,255,0.4)">Run ⏎</div>
+        <div class="pill">Hide</div>
+      </div>
+      <div class="keyboard">[ virtual keyboard ]</div>
+      <div class="toggle">⌘</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
