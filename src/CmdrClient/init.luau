@@ -40,7 +40,7 @@ do
 
 		-- New: mobile + theming
 		MobileToggleEnabled = UserInputService.TouchEnabled,
-		MobileToggleIcon = "⌘",
+		MobileToggleIcon = "Cmd",
 	}, {
 		__index = function(self, k)
 			local r = self.Dispatcher[k]

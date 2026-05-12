@@ -354,12 +354,17 @@ local function buildAutocomplete(theme: Theme): (
 		Name = "Items",
 		BackgroundTransparency = 1,
 		Size = UDim2.new(1, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
 		AutomaticCanvasSize = Enum.AutomaticSize.Y,
 		CanvasSize = UDim2.new(),
 		ScrollBarThickness = 4,
 		ScrollBarImageColor3 = theme.AccentMuted,
 		BorderSizePixel = 0,
 		LayoutOrder = 2,
+	}, {
+		make("UISizeConstraint", {
+			MaxSize = Vector2.new(math.huge, 240),
+		}),
 	})
 
 	local itemsLayout = make("UIListLayout", {
@@ -400,7 +405,7 @@ local function buildMobileToggle(theme: Theme): TextButton
 		Size = UDim2.fromOffset(56, 56),
 		BackgroundColor3 = theme.Surface,
 		BackgroundTransparency = 0.05,
-		Text = "⌘",
+		Text = "Cmd",
 		Font = theme.Font,
 		TextColor3 = theme.Accent,
 		TextSize = 26,
@@ -457,10 +462,10 @@ local function buildMobileBar(theme: Theme): (Frame, { [string]: TextButton })
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Padding = UDim.new(0, 6),
 		}),
-		pill("Up", "↑", 1),
-		pill("Down", "↓", 2),
+		pill("Up", "Up", 1),
+		pill("Down", "Down", 2),
 		pill("Tab", "Tab", 3),
-		pill("Submit", "Run ⏎", 4),
+		pill("Submit", "Run", 4),
 		pill("Hide", "Hide", 5),
 	})
 
@@ -522,7 +527,7 @@ function UIBuilder.Build(playerName: string): Refs
 		Position = UDim2.new(0, 12, 1, -6),
 		Size = UDim2.new(1, -24, 0, 14),
 		Font = theme.Font,
-		Text = "tab autocomplete · ↑ ↓ history · enter run · F2 close",
+		Text = "tab autocomplete · up/down history · enter run · F2 close",
 		TextColor3 = theme.TextMuted,
 		TextSize = theme.HeaderTextSize - 3,
 		TextXAlignment = Enum.TextXAlignment.Left,
