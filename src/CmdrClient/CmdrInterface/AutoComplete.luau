@@ -70,13 +70,26 @@ return function(Cmdr: any)
 		-- Default below the window
 		local y = rp.Y + rs.Y + 8
 		local x = rp.X
-		if UserInputService.TouchEnabled and refs.MobileBar.Visible then
-			-- Render above the mobile bar
-			local barTop = refs.MobileBar.AbsolutePosition.Y
-			y = math.max(rp.Y + rs.Y + 8, math.min(y, barTop - refs.Autocomplete.AbsoluteSize.Y - 8))
+
+		-- Force AutomaticSize to resolve before reading AbsoluteSize so the
+		-- below-vs-above-the-window decision uses the popup's real height.
+		local popupHeight = refs.Autocomplete.AbsoluteSize.Y
+		if popupHeight <= 0 then
+			popupHeight = 120
 		end
 
-		-- If it would clip off the right edge, push left
+		if UserInputService.TouchEnabled and refs.MobileBar.Visible then
+			-- Render above the mobile bar when there isn't room below it
+			local barTop = refs.MobileBar.AbsolutePosition.Y
+			if y + popupHeight > barTop - 8 then
+				y = math.max(8, barTop - popupHeight - 8)
+			end
+		elseif y + popupHeight > screen.Y - 16 then
+			-- Desktop: flip above the window if it would clip off the bottom
+			y = math.max(8, rp.Y - popupHeight - 8)
+		end
+
+		-- Horizontal: push left if it would clip off the right edge
 		if x + width > screen.X - 8 then
 			x = screen.X - width - 8
 		end
@@ -139,7 +152,6 @@ return function(Cmdr: any)
 
 			local nameLabel = btn:FindFirstChild("ItemName") :: TextLabel?
 			local descLabel = btn:FindFirstChild("ItemDesc") :: TextLabel?
-			local badgeLabel = btn:FindFirstChild("ItemBadge") :: TextLabel?
 
 			if nameLabel then
 				nameLabel.Text = highlightedName(theme, leftText, rightText)
@@ -148,23 +160,13 @@ return function(Cmdr: any)
 			end
 
 			if descLabel then
-				if options.description then
-					descLabel.Text = tostring(options.description)
+				local descText = options.description or options.name
+				if descText then
+					descLabel.Text = tostring(descText)
 					descLabel.TextColor3 = options.invalid and theme.Error or theme.TextMuted
 					descLabel.Visible = true
 				else
 					descLabel.Visible = false
-				end
-			end
-
-			if badgeLabel then
-				local badgeText = options.type or (options.name and options.description and options.name)
-				if badgeText then
-					badgeLabel.Text = tostring(badgeText)
-					badgeLabel.TextColor3 = theme.AccentMuted
-					badgeLabel.Visible = true
-				else
-					badgeLabel.Visible = false
 				end
 			end
 
@@ -249,10 +251,13 @@ return function(Cmdr: any)
 		return AutoComplete.Items[AutoComplete.SelectedItem]
 	end
 
-	-- Re-position when the window moves/resizes
+	-- Re-position when the window moves/resizes, or when the popup's own
+	-- AutomaticSize.Y settles to a new value after items render (so we can
+	-- flip above the window once the real height is known).
 	refs.Root:GetPropertyChangedSignal("AbsolutePosition"):Connect(positionPopup)
 	refs.Root:GetPropertyChangedSignal("AbsoluteSize"):Connect(positionPopup)
 	refs.MobileBar:GetPropertyChangedSignal("Visible"):Connect(positionPopup)
+	refs.Autocomplete:GetPropertyChangedSignal("AbsoluteSize"):Connect(positionPopup)
 
 	return AutoComplete
 end
