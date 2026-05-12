@@ -1,0 +1,6 @@
+# Toolchain managed by Aftman. https://github.com/LPGhatguy/aftman
+[tools]
+rojo = "rojo-rbx/rojo@7.4.4"
+wally = "upliftgames/wally@0.3.2"
+selene = "kampfkarren/selene@0.27.1"
+stylua = "johnnymorganz/stylua@0.20.0"
