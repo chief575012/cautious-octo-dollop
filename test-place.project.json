@@ -1,0 +1,11 @@
+{
+	"name": "CmdrPlusTest",
+	"tree": {
+		"$className": "DataModel",
+		"ServerScriptService": {
+			"CmdrPlus": {
+				"$path": "src"
+			}
+		}
+	}
+}
