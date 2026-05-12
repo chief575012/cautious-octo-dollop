@@ -42,8 +42,14 @@ return function(Cmdr: any)
 			TweenService:Create(btn, POPUP_TWEEN, {
 				BackgroundTransparency = selected and 0.15 or 1,
 				BackgroundColor3 = theme.AccentMuted,
-				TextColor3 = selected and theme.TextStrong or theme.Text,
 			}):Play()
+
+			local nameLabel = btn:FindFirstChild("ItemName")
+			if nameLabel and nameLabel:IsA("TextLabel") then
+				TweenService:Create(nameLabel, POPUP_TWEEN, {
+					TextColor3 = selected and theme.TextStrong or theme.Text,
+				}):Play()
+			end
 		end
 	end
 
@@ -56,8 +62,8 @@ return function(Cmdr: any)
 		local rs = root.AbsoluteSize
 		local screen = refs.Gui.AbsoluteSize
 
-		-- Width matches root, clamped between 240 and 480 for readability
-		local width = math.clamp(rs.X, 260, 520)
+		-- Width matches root, clamped to keep names + description readable.
+		local width = math.clamp(rs.X, 320, 560)
 		refs.Autocomplete.Size = UDim2.fromOffset(width, 0)
 		refs.Autocomplete.AutomaticSize = Enum.AutomaticSize.Y
 
@@ -98,6 +104,25 @@ return function(Cmdr: any)
 		refs.AcDescription.Visible = options.description ~= nil
 	end
 
+	local function highlightedName(theme: any, leftText: string, rightText: string): string
+		local matchStart, matchStop = string.find(rightText:lower(), leftText:lower(), 1, true)
+		if not (matchStart and matchStop) or #leftText == 0 then
+			return rightText
+		end
+
+		local pre = rightText:sub(1, matchStart - 1)
+		local hi = rightText:sub(matchStart, matchStop)
+		local post = rightText:sub(matchStop + 1)
+		return ('%s<font color="rgb(%d,%d,%d)"><b>%s</b></font>%s'):format(
+			pre,
+			math.floor(theme.Accent.R * 255),
+			math.floor(theme.Accent.G * 255),
+			math.floor(theme.Accent.B * 255),
+			hi,
+			post
+		)
+	end
+
 	local function renderItems()
 		local theme = Theme.Current
 		clearItems()
@@ -112,47 +137,35 @@ return function(Cmdr: any)
 			btn.LayoutOrder = i
 			btn.Parent = refs.AcItems
 
-			-- Highlight matched substring using RichText
-			local matchStart, matchStop = string.find(rightText:lower(), leftText:lower(), 1, true)
-			local rendered: string
-			if matchStart and matchStop and #leftText > 0 then
-				local pre = rightText:sub(1, matchStart - 1)
-				local hi = rightText:sub(matchStart, matchStop)
-				local post = rightText:sub(matchStop + 1)
-				rendered = ('<font color="rgb(%d,%d,%d)">%s</font><b>%s</b><font color="rgb(%d,%d,%d)">%s</font>'):format(
-					math.floor(theme.TextMuted.R * 255),
-					math.floor(theme.TextMuted.G * 255),
-					math.floor(theme.TextMuted.B * 255),
-					pre,
-					hi,
-					math.floor(theme.TextMuted.R * 255),
-					math.floor(theme.TextMuted.G * 255),
-					math.floor(theme.TextMuted.B * 255),
-					post
-				)
-			else
-				rendered = rightText
+			local nameLabel = btn:FindFirstChild("ItemName") :: TextLabel?
+			local descLabel = btn:FindFirstChild("ItemDesc") :: TextLabel?
+			local badgeLabel = btn:FindFirstChild("ItemBadge") :: TextLabel?
+
+			if nameLabel then
+				nameLabel.Text = highlightedName(theme, leftText, rightText)
+				nameLabel.Font = theme.MonoFont
+				nameLabel.TextColor3 = theme.Text
 			end
 
-			btn.Text = rendered
-			btn.TextColor3 = theme.Text
-			btn.Font = theme.MonoFont
+			if descLabel then
+				if options.description then
+					descLabel.Text = tostring(options.description)
+					descLabel.TextColor3 = options.invalid and theme.Error or theme.TextMuted
+					descLabel.Visible = true
+				else
+					descLabel.Visible = false
+				end
+			end
 
-			-- Right-aligned secondary line (the item type/name) — small label
-			if options.description or options.name then
-				local sub = Instance.new("TextLabel")
-				sub.Name = "Sub"
-				sub.AnchorPoint = Vector2.new(1, 0.5)
-				sub.Position = UDim2.new(1, -8, 0.5, 0)
-				sub.Size = UDim2.fromOffset(0, 18)
-				sub.AutomaticSize = Enum.AutomaticSize.X
-				sub.BackgroundTransparency = 1
-				sub.Font = theme.Font
-				sub.Text = options.description or options.name or ""
-				sub.TextColor3 = theme.TextMuted
-				sub.TextSize = theme.TextSize - 3
-				sub.TextXAlignment = Enum.TextXAlignment.Right
-				sub.Parent = btn
+			if badgeLabel then
+				local badgeText = options.type or (options.name and options.description and options.name)
+				if badgeText then
+					badgeLabel.Text = tostring(badgeText)
+					badgeLabel.TextColor3 = theme.AccentMuted
+					badgeLabel.Visible = true
+				else
+					badgeLabel.Visible = false
+				end
 			end
 
 			btn.MouseButton1Click:Connect(function()
