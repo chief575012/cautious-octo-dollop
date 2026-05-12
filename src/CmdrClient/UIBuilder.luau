@@ -206,7 +206,7 @@ local function buildEntry(theme: Theme): (Frame, TextLabel, TextLabel, TextBox)
 		Size = UDim2.fromOffset(0, 22),
 		AutomaticSize = Enum.AutomaticSize.X,
 		Font = theme.MonoFont,
-		Text = "player ❯",
+		Text = "player ›",
 		TextColor3 = theme.Accent,
 		TextSize = theme.TextSize,
 		TextXAlignment = Enum.TextXAlignment.Left,
@@ -636,7 +636,7 @@ function UIBuilder.Build(playerName: string): Refs
 	}
 
 	-- Make prompt reflect player name early
-	prompt.Text = playerName .. " ❯"
+	prompt.Text = playerName .. " ›"
 
 	return refs
 end
